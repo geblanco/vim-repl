@@ -22,30 +22,74 @@
 
 let t:last_buff = ''
 
-if !exists('g:notebook_vim_tab')
-  let g:notebook_vim_tab = 1
+" variables
+" g:repl_ipython
+" g:repl_interpreter
+" g:repl_script
+" g:repl_args
+" g:repl_vim_tab
+" g:repl_vertical
+"
+
+" Shortcut for ipython options
+if exists('g:repl_ipython') && g:repl_ipython
+  let g:repl_interpreter = '/usr/bin/ipython3 -i'
+  let g:repl_script = expand('<sfile>:p:h') . '/ipython.py'
+  let g:repl_args = ' -- '
+  let g:repl_vim_tab = 1
 endif
 
-if !exists('g:notebook_repl')
-  let g:notebook_repl = expand('<sfile>:p:h') . '/notebook.py'
-  " echo 'No repl path given, falling back to default ' . g:notebook_repl
+if !exists('g:repl_interpreter')
+  let g:repl_interpreter = '/usr/bin/python3'
+endif
+
+if !exists('g:repl_script')
+  let g:repl_script = expand('<sfile>:p:h') . '/notebook.py'
+endif
+
+if !exists('g:repl_args')
+  let g:repl_args = ''
+endif
+
+if !exists('g:repl_vim_tab')
+  let g:repl_vim_tab = 1
+endif
+
+if !exists('g:repl_vertical')
+  let g:repl_vertical = 0
+endif
+
+if !exists('g:repl_must_load')
+  let g:repl_must_load = 1
 endif
 
 function! REPLInit()
   if !exists('t:fifo_in')
     let t:fifo_in = tempname()
     call system('mkfifo ' . t:fifo_in)
-    if g:notebook_vim_tab 
-      call term_start('/usr/bin/python3 ' . g:notebook_repl . ' ' . getcwd() . ' ' . t:fifo_in)
+    if g:repl_vim_tab 
+      let current_window = winnr()
+      call term_start(g:repl_interpreter . ' ' . g:repl_script . ' ' . g:repl_args  . ' ' . getcwd() . ' ' . t:fifo_in, 
+            \ { 'vertical' : g:repl_vertical, 'term_finish': 'close' })
+      exe current_window . 'wincmd w'
+      let g:repl_must_load = 0
     else
-      echo 'Here is your pipe ' . t:fifo_in . ' spawn ' . g:notebook_repl . ' script'
+      echo 'Here is your pipe ' . t:fifo_in . ' spawn ' . g:repl_script . ' script'
+      let g:repl_must_load = 1
     endif
   endif
 endfunction
 
 function! REPLClose()
-  " ToDo := Close repl and pipe
-  echo "Warning: Not implemented!"
+  call system('echo "quit" > ' . t:fifo_in)
+  call system('rm ' . t:fifo_in)
+  let g:repl_must_load = 1
+  unlet t:fifo_in
+  unlet t:repl_started
+endfunction
+
+function! REPLReady()
+  let g:repl_must_load = 0
 endfunction
 
 " taken from https://stackoverflow.com/questions/1533565/how-to-get-visually-selected-text-in-vimscript
@@ -75,18 +119,21 @@ function! REPLGetBlock()
 endfunction
 
 function! REPLEval() 
-  if !exists('t:notebook_started')
+  if !exists('t:repl_started')
     call REPLInit()
   endif
 
-  let t:notebook_started = 1
-
-  let str = REPLGetBlock()
-  let str = substitute(str, "\"", "'", 'g')
-  call system('echo "' . str . '" > ' . t:fifo_in)
-  "exe '"' . str . '" write! >> ' . t:fifo_in
+  let t:repl_started = 1
+  
+  if g:repl_must_load == 1
+    echo "Load repl externally and hit ':call REPLReady()' to start piping content"
+  else
+    let str = REPLGetBlock()
+    let str = substitute(str, "\"", "'", 'g')
+    call system('echo "' . str . '" > ' . t:fifo_in)
+    "exe '"' . str . '" write! >> ' . t:fifo_in
+  endif
 endfunction
 
-"command! NotebookStart :call REPLInit()
 command! REPLEval :call REPLEval()
-map <LocalLeader>s : <C-U>REPLEval<CR>
+command! REPLClose :call REPLClose()

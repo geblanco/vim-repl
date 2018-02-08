@@ -12,9 +12,22 @@ When first activated, a pipe is created for streaming code. Then the repl script
 
 `let g:notebook_vim_tab = 0`
 
+# Options
+* `g:repl_ipython`: Shortcut for setting options for ipython instead of python notebook (much richier) - Default 0
+* `g:repl_interpreter`: The interpreter to be used for the repl - Default `/usr/bin/python3`
+* `g:repl_script`: The script to grab content from the pipe and stream it to the repl - Default `notebook.py`
+* `g:repl_args`: Arguments for the interpreter. Used for ipython (needs some args to work with preloaded scripts) - Defaults to ""
+* `g:repl_vim_tab`: Whether to spawn the repl inside vim's terminal or not (requires you to run the streamer appart) - Defaults to 1
+* `g:repl_vertical`: When `g:notebook_vim_tab = 1`, set the terminal to split vertical or horizontal - Defaults to 0 (horizontal)
+
+## Advice
+I think the most useful setup comes with `g:repl_ipython = 1`, `g:repl_vertical = 1`, which sets up everything for ipython and splits vertically.
+
 # What's next?
-* Add more options for shell spawn, repl and so on
 * I've tried many completing engines for vim, some of them work reasonably well, but none fits to my needs. In the future this plugin could be used for completion too.
+
+# Disclaimer
+This is an experimental project, expect nothing from it :)
 
 # Contributing
 Any idea/comment/pr is wellcome :)
